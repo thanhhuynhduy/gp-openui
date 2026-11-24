@@ -100,6 +100,11 @@ gpclient --fix-openssl launch-gui
 - `pkexec` (Polkit) for launching `gpservice` with root privileges
 - Internet access during first build to fetch Rust/Node toolchains and crates/packages
 
+## Credits
+
+- **Original UI (`globalprotect-openconnect-openui`)**: Created by [Elane Faisal-Sage (MagiShira)](https://github.com/MagiShira/globalprotect-openconnect-openui) — licensed under GPL-2.0.
+- **Backend (`GlobalProtect-openconnect`)**: Created by [yuezk](https://github.com/yuezk/GlobalProtect-openconnect) (`v2.5.1`) — licensed under GPL-3.0 / GPL-2.0.
+
 ## License
 
 GPL-2.0
