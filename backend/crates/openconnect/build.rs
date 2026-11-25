@@ -30,65 +30,6 @@ fn apply_patches(patches_dir: &PathBuf, build_src: &PathBuf) {
   }
 }
 
-fn build_libxml2(deps_dir: &PathBuf, out_dir: &PathBuf) -> PathBuf {
-  let libxml2_dir = deps_dir.join("libxml2");
-
-  // The temporary location where we will build
-  let build_src = out_dir.join("libxml2_build");
-
-  // Track changes so cargo rebuilds if submodule changes
-  println!("cargo:rerun-if-changed={}", libxml2_dir.display());
-
-  // Prepare the build directory
-  // If the directory exists from a previous run, remove it to ensure a clean slate
-  if build_src.exists() {
-    std::fs::remove_dir_all(&build_src).unwrap();
-  }
-  std::fs::create_dir_all(&build_src).unwrap();
-
-  // Copy the source code to OUT_DIR
-  // We use fs_extra options to copy contents recursively
-  let mut options = fs_extra::dir::CopyOptions::new();
-  options.overwrite = true;
-  options.content_only = true; // Copy content of src into dest, not src folder itself
-
-  fs_extra::dir::copy(&libxml2_dir, &build_src, &options).expect("Failed to copy C source code to OUT_DIR");
-
-  // Build the libxml2 library using autotools
-  let dst = autotools::Config::new(&build_src)
-    .reconf("-ivf")
-    .enable_static()
-    .disable_shared()
-    // Disable optional features that complicate static builds
-    .with("python", Some("no"))
-    .with("icu", Some("no"))
-    .with("http", Some("no"))
-    .with("ftp", Some("no"))
-    .with("catalog", Some("no"))
-    .with("docbook", Some("no"))
-    .with("legacy", Some("no"))
-    .with("threads", Some("no"))
-    .with("zlib", Some("no"))
-    .with("lzma", Some("no"))
-    // Ensure position-independent code (safe for static linking)
-    .cflag("-fPIC")
-    .build();
-
-  let lib_dir = dst.join("lib");
-  let include_dir = dst.join("include/libxml2");
-
-  // Tell rustc where to find the static library
-  println!("cargo:rustc-link-search=native={}", lib_dir.display());
-
-  // Static linking of libxml2
-  println!("cargo:rustc-link-lib=static=xml2");
-
-  // Export include path for downstream use (bindgen / cc)
-  println!("cargo:include={}", include_dir.display());
-
-  dst
-}
-
 fn build_openconnect(deps_dir: &PathBuf, out_dir: &PathBuf) -> PathBuf {
   let openconnect_dir = deps_dir.join("openconnect");
   let patches_dir = deps_dir.join("patches");
@@ -159,15 +100,8 @@ fn main() {
 
   let oc_dst = build_openconnect(&deps_dir, &out_dir);
 
-  // Only statically link libxml2 if `LIBXML2_STATIC` is set
-  if env::var("LIBXML2_STATIC").is_ok() {
-    let _libxml2_dst = build_libxml2(&deps_dir, &out_dir);
-  } else {
-    // Using pkg-config to find system libxml2
-    pkg_config::probe_library("libxml-2.0").unwrap();
-  }
-
   // Using pkg-config to find system deps
+  pkg_config::probe_library("libxml-2.0").unwrap();
   pkg_config::probe_library("zlib").unwrap();
   pkg_config::probe_library("liblz4").unwrap();
   pkg_config::probe_library("gnutls").unwrap();

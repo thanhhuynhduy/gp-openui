@@ -1,0 +1,6 @@
+# bash completion for openconnect
+_openconnect()
+{
+    return 0
+}
+complete -F _openconnect openconnect
