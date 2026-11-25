@@ -144,21 +144,16 @@ export default function App() {
       }
     });
 
-    const unlistenCloseRequested = listen("window-close-requested", async () => {
-      const s = JSON.parse(localStorage.getItem("gpopenui_settings") ?? "{}");
-      if (s.closeWindowBehavior === "quit") {
-        await invoke("quit_app");
-      } else {
-        await getCurrentWindow().hide();
-      }
-    });
+    const savedSettings = JSON.parse(localStorage.getItem("gpopenui_settings") ?? "{}");
+    invoke("set_close_to_tray", {
+      closeToTray: savedSettings.closeWindowBehavior !== "quit",
+    }).catch(() => {});
 
     return () => {
       unlistenState.then((u) => u());
       unlistenServiceErr.then((u) => u());
       unlistenDisconnected.then((u) => u());
       unlistenTrayConnect.then((u) => u());
-      unlistenCloseRequested.then((u) => u());
     };
   }, []);
 

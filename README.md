@@ -29,7 +29,7 @@ The upstream `gpgui` binary is proprietary and paid, and newer upstream packages
 - **System tray integration** — hide to tray on close (`✕`), left-click tray toggle, tray menu (Toggle Window, Settings, Connect/Disconnect, Quit), and live connection duration tooltip
 - **Tunnel & connection options** — OS spoofing (Linux/Windows/macOS), HIP report submission, disable IPv6, disable DTLS, custom MTU, VPNC script, reconnect timeout
 - **Theme support** — light, dark, and system-follow modes
-- **Wayland and X11** — native Wayland support with automatic XWayland fallback on KDE sessions
+- **Wayland and X11** — native Wayland support with automatic XWayland fallback on KDE and COSMIC sessions
 
 ## Repository Structure
 

@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
 
 use common::constants::{GP_CLIENT_VERSION, GP_USER_AGENT};
 use gpapi::{service::request::WsRequest, utils::host_utils};
@@ -18,6 +21,8 @@ pub struct AppState {
   pub auth_executable: Arc<Mutex<Option<String>>>,
   /// When true, the next SAML auth will pass --clean to clear stored cookies
   pub clean_next_auth: Arc<Mutex<bool>>,
+  /// When true, closing the main window hides it to the system tray instead of quitting
+  pub close_to_tray: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -26,6 +31,7 @@ impl AppState {
       client: Arc::new(Mutex::new(None)),
       auth_executable: Arc::new(Mutex::new(None)),
       clean_next_auth: Arc::new(Mutex::new(false)),
+      close_to_tray: Arc::new(AtomicBool::new(true)),
     }
   }
 }
@@ -245,6 +251,11 @@ pub fn open_url(url: String) -> Result<(), String> {
 #[tauri::command]
 pub fn quit_app(app: AppHandle) {
   app.exit(0);
+}
+
+#[tauri::command]
+pub fn set_close_to_tray(close_to_tray: bool, state: State<'_, AppState>) {
+  state.close_to_tray.store(close_to_tray, Ordering::Relaxed);
 }
 
 #[tauri::command]

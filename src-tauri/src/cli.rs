@@ -56,6 +56,15 @@ fn is_kde_session() -> bool {
     || std::env::var("KDE_SESSION_VERSION").is_ok()
 }
 
+fn is_cosmic_session() -> bool {
+  std::env::var("XDG_CURRENT_DESKTOP")
+    .map(|d| d.to_ascii_lowercase().contains("cosmic"))
+    .unwrap_or(false)
+    || std::env::var("XDG_SESSION_DESKTOP")
+      .map(|d| d.to_ascii_lowercase().contains("cosmic"))
+      .unwrap_or(false)
+}
+
 fn configure_display_backend() {
   // Respect an explicitly set GDK_BACKEND
   if std::env::var("GDK_BACKEND").is_ok() {
@@ -68,14 +77,14 @@ fn configure_display_backend() {
       .unwrap_or(false);
 
   unsafe {
-    if is_wayland && !is_kde_session() {
+    if is_wayland && !is_kde_session() && !is_cosmic_session() {
       std::env::set_var("GDK_BACKEND", "wayland");
       info!("Display backend: Wayland");
     } else {
       std::env::set_var("GDK_BACKEND", "x11");
       std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
       if is_wayland {
-        info!("Display backend: XWayland (KDE session)");
+        info!("Display backend: XWayland");
       } else {
         info!("Display backend: X11");
       }

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{atomic::Ordering, Arc};
 use std::time::Instant;
 
 use gpapi::service::{
@@ -57,17 +57,12 @@ impl TrayStatus {
 #[cfg(desktop)]
 fn toggle_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<(), String> {
   if let Some(window) = app.get_webview_window("main") {
-    if !window.is_visible().unwrap_or(true) {
-      // Window was fully hidden (e.g. started with --minimized): restore it.
-      window.show().map_err(|e| e.to_string())?;
-      window.set_focus().map_err(|e| e.to_string())?;
-    } else if window.is_focused().unwrap_or(false) {
-      // Window is visible and focused: hide to tray.
+    if window.is_visible().unwrap_or(false) && window.is_focused().unwrap_or(false) {
       let _ = window.hide();
     } else {
-      // Window is minimized or behind other windows: bring it to front.
       let _ = window.unminimize();
       window.show().map_err(|e| e.to_string())?;
+      let _ = window.set_skip_taskbar(true);
       window.set_focus().map_err(|e| e.to_string())?;
     }
     Ok(())
@@ -100,10 +95,30 @@ impl App {
         connect_password,
         disconnect,
         quit_app,
+        set_close_to_tray,
         open_settings,
         open_url,
         clear_credentials,
       ])
+      .on_window_event(|window, event| {
+        if window.label() == "main" {
+          if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+            let close_to_tray = window
+              .app_handle()
+              .state::<AppState>()
+              .close_to_tray
+              .load(Ordering::Relaxed);
+            if close_to_tray {
+              api.prevent_close();
+              if let Err(e) = window.hide() {
+                warn!("Failed to hide main window: {}", e);
+              }
+            } else {
+              window.app_handle().exit(0);
+            }
+          }
+        }
+      })
       .setup(move |app| {
         let app_handle = app.handle().clone();
 
@@ -290,14 +305,6 @@ impl App {
 
         if let Some(window) = app.get_webview_window("main") {
           let _ = window.set_skip_taskbar(true);
-
-          let window_clone = window.clone();
-          let _ = window.on_window_event(move |event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-              api.prevent_close();
-              let _ = window_clone.emit("window-close-requested", ());
-            }
-          });
         }
 
         // Connect to gpservice in the background

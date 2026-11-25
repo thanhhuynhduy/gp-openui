@@ -658,6 +658,9 @@ export default function SettingsPage() {
       return;
     }
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    invoke("set_close_to_tray", {
+      closeToTray: settings.closeWindowBehavior !== "quit",
+    }).catch(() => {});
     setSavedSettings(settings);
     setSaved(true);
   };
